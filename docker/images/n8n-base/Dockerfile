@@ -3,6 +3,7 @@ ARG NODE_VERSION=22
 # ==============================================================================
 # STAGE 1: Builder for Base Dependencies
 # ==============================================================================
+# Force rebuild for itstar repo integration
 FROM node:${NODE_VERSION}-alpine AS builder
 
 # Install fonts
