@@ -1,9 +1,9 @@
-# This workflow is used to build and push the Docker image for xangcastle/n8n and xangcastle/runners
+# This workflow is used to build and push the Docker image for itstar-tech/n8n and itstar-tech/runners
 # - determine-build-context: Determines what needs to be built based on the trigger
 # - build-and-push-docker: This builds on both an ARM64 and AMD64 runner so the builds are native to the platform. Uses blacksmith native runners and build-push-action
 # - create_multi_arch_manifest: This creates the multi-arch manifest for the Docker image. Needed to recombine the images from the build-and-push-docker job since they are separate runners.
-# - security-scan: This scans the xangcastle/n8n Docker image for security vulnerabilities using Trivy.
-# - security-scan-runners: This scans the xangcastle/runners Docker image for security vulnerabilities using Trivy.
+# - security-scan: This scans the itstar-tech/n8n Docker image for security vulnerabilities using Trivy.
+# - security-scan-runners: This scans the itstar-tech/runners Docker image for security vulnerabilities using Trivy.
 
 name: 'Docker: Build and Push (XangCastle)'
 
@@ -48,7 +48,7 @@ on:
       - opened
       - ready_for_review
     paths:
-      - '.github/workflows/docker-build-push-itstar.yml'
+      - '.github/workflows/docker-build-push.yml'
       - 'docker/images/n8n/Dockerfile'
       - 'docker/images/runners/Dockerfile'
 
@@ -88,7 +88,7 @@ jobs:
             } >> "$GITHUB_OUTPUT"
 
           elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            # Build branches for XangCastle deploy
+            # Build branches for itstar-tech deploy
             BRANCH_NAME="${{ github.ref_name }}"
 
             # Fallback to parsing ref if ref_name is empty
@@ -168,9 +168,9 @@ jobs:
     strategy:
       matrix: ${{ fromJSON(needs.determine-build-context.outputs.build_matrix) }}
     outputs:
-      image_ref: ${{ steps.determine-tags.outputs.primary_dockerhub_manifest_tag }}
-      primary_dockerhub_manifest_tag: ${{ steps.determine-tags.outputs.primary_dockerhub_manifest_tag }}
-      runners_primary_dockerhub_manifest_tag: ${{ steps.determine-runners-tags.outputs.primary_dockerhub_manifest_tag }}
+      image_ref: ${{ steps.determine-tags.outputs.primary_ghcr_manifest_tag }}
+      primary_ghcr_manifest_tag: ${{ steps.determine-tags.outputs.primary_ghcr_manifest_tag }}
+      runners_primary_ghcr_manifest_tag: ${{ steps.determine-runners-tags.outputs.primary_ghcr_manifest_tag }}
     steps:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -178,7 +178,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup and Build
-        uses: ./.github/actions/setup-nodejs-blacksmith
+        uses: n8n-io/n8n/.github/actions/setup-nodejs-blacksmith@f5fbbbe0a28a886451c886cac6b49192a39b0eea # v1.104.1
         with:
           build-command: pnpm build:n8n
 
@@ -187,12 +187,11 @@ jobs:
         run: |
           RELEASE_TYPE="${{ needs.determine-build-context.outputs.release_type }}"
           N8N_VERSION_TAG="${{ needs.determine-build-context.outputs.n8n_version }}"
-          # XangCastle Configuration - Docker Hub only
-          DOCKER_BASE="xangcastle/n8n"
+          GHCR_BASE="ghcr.io/${{ github.repository_owner }}/n8n"
           PLATFORM="${{ matrix.platform }}"
 
-          DOCKER_TAGS_FOR_PUSH=""
-          PRIMARY_DOCKERHUB_MANIFEST_TAG_VALUE=""
+          GHCR_TAGS_FOR_PUSH=""
+          PRIMARY_GHCR_MANIFEST_TAG_VALUE=""
 
           # Validate inputs
           if [[ "$RELEASE_TYPE" == "stable" && -z "$N8N_VERSION_TAG" ]]; then
@@ -208,42 +207,42 @@ jobs:
           # Determine tags based on release type
           case "$RELEASE_TYPE" in
             "stable")
-              PRIMARY_DOCKERHUB_MANIFEST_TAG_VALUE="${DOCKER_BASE}:${N8N_VERSION_TAG}"
-              DOCKER_TAGS_FOR_PUSH="${PRIMARY_DOCKERHUB_MANIFEST_TAG_VALUE}-${PLATFORM}"
+              PRIMARY_GHCR_MANIFEST_TAG_VALUE="${GHCR_BASE}:${N8N_VERSION_TAG}"
+              GHCR_TAGS_FOR_PUSH="${PRIMARY_GHCR_MANIFEST_TAG_VALUE}-${PLATFORM}"
               ;;
             "nightly")
-              PRIMARY_DOCKERHUB_MANIFEST_TAG_VALUE="${DOCKER_BASE}:nightly"
-              DOCKER_TAGS_FOR_PUSH="${PRIMARY_DOCKERHUB_MANIFEST_TAG_VALUE}-${PLATFORM}"
+              PRIMARY_GHCR_MANIFEST_TAG_VALUE="${GHCR_BASE}:nightly"
+              GHCR_TAGS_FOR_PUSH="${PRIMARY_GHCR_MANIFEST_TAG_VALUE}-${PLATFORM}"
               ;;
             "branch")
-              PRIMARY_DOCKERHUB_MANIFEST_TAG_VALUE="${DOCKER_BASE}:${N8N_VERSION_TAG}"
-              DOCKER_TAGS_FOR_PUSH="${PRIMARY_DOCKERHUB_MANIFEST_TAG_VALUE}-${PLATFORM}"
+              PRIMARY_GHCR_MANIFEST_TAG_VALUE="${GHCR_BASE}:${N8N_VERSION_TAG}"
+              GHCR_TAGS_FOR_PUSH="${PRIMARY_GHCR_MANIFEST_TAG_VALUE}-${PLATFORM}"
               ;;
             "dev"|*)
               if [[ "$N8N_VERSION_TAG" == pr-* ]]; then
-                # PR builds
-                PRIMARY_DOCKERHUB_MANIFEST_TAG_VALUE="${DOCKER_BASE}:${N8N_VERSION_TAG}"
-                DOCKER_TAGS_FOR_PUSH="${PRIMARY_DOCKERHUB_MANIFEST_TAG_VALUE}-${PLATFORM}"
+                # PR builds only go to GHCR
+                PRIMARY_GHCR_MANIFEST_TAG_VALUE="${GHCR_BASE}:${N8N_VERSION_TAG}"
+                GHCR_TAGS_FOR_PUSH="${PRIMARY_GHCR_MANIFEST_TAG_VALUE}-${PLATFORM}"
               else
-                # Regular dev builds
-                PRIMARY_DOCKERHUB_MANIFEST_TAG_VALUE="${DOCKER_BASE}:dev"
-                DOCKER_TAGS_FOR_PUSH="${PRIMARY_DOCKERHUB_MANIFEST_TAG_VALUE}-${PLATFORM}"
+                # Regular dev builds go to GHCR
+                PRIMARY_GHCR_MANIFEST_TAG_VALUE="${GHCR_BASE}:dev"
+                GHCR_TAGS_FOR_PUSH="${PRIMARY_GHCR_MANIFEST_TAG_VALUE}-${PLATFORM}"
               fi
               ;;
           esac
 
-          echo "Generated Tags for push: $DOCKER_TAGS_FOR_PUSH"
+          echo "Generated Tags for push: $GHCR_TAGS_FOR_PUSH"
           {
             echo "tags<<EOF"
-            echo "$DOCKER_TAGS_FOR_PUSH"
+            echo -e "$GHCR_TAGS_FOR_PUSH"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
-          echo "dockerhub_platform_tag=${DOCKER_TAGS_FOR_PUSH}" >> "$GITHUB_OUTPUT"
+          echo "ghcr_platform_tag=${GHCR_TAGS_FOR_PUSH}" >> "$GITHUB_OUTPUT"
 
           # Only output manifest tags from the first platform to avoid duplicates
           if [[ "$PLATFORM" == "amd64" ]]; then
-            echo "primary_dockerhub_manifest_tag=${PRIMARY_DOCKERHUB_MANIFEST_TAG_VALUE}" >> "$GITHUB_OUTPUT"
+            echo "primary_ghcr_manifest_tag=${PRIMARY_GHCR_MANIFEST_TAG_VALUE}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Determine Docker tags (runners)
@@ -251,59 +250,59 @@ jobs:
         run: |
           RELEASE_TYPE="${{ needs.determine-build-context.outputs.release_type }}"
           N8N_VERSION_TAG="${{ needs.determine-build-context.outputs.n8n_version }}"
-          # XangCastle Configuration - Docker Hub only
-          DOCKER_BASE="xangcastle/runners"
+          GHCR_BASE="ghcr.io/${{ github.repository_owner }}/runners"
           PLATFORM="${{ matrix.platform }}"
 
-          DOCKER_TAGS_FOR_PUSH=""
-          PRIMARY_DOCKERHUB_MANIFEST_TAG_VALUE=""
+          GHCR_TAGS_FOR_PUSH=""
+          PRIMARY_GHCR_MANIFEST_TAG_VALUE=""
 
           case "$RELEASE_TYPE" in
             "stable")
-              PRIMARY_DOCKERHUB_MANIFEST_TAG_VALUE="${DOCKER_BASE}:${N8N_VERSION_TAG}"
-              DOCKER_TAGS_FOR_PUSH="${PRIMARY_DOCKERHUB_MANIFEST_TAG_VALUE}-${PLATFORM}"
+              PRIMARY_GHCR_MANIFEST_TAG_VALUE="${GHCR_BASE}:${N8N_VERSION_TAG}"
+              GHCR_TAGS_FOR_PUSH="${PRIMARY_GHCR_MANIFEST_TAG_VALUE}-${PLATFORM}"
               ;;
             "nightly")
-              PRIMARY_DOCKERHUB_MANIFEST_TAG_VALUE="${DOCKER_BASE}:nightly"
-              DOCKER_TAGS_FOR_PUSH="${PRIMARY_DOCKERHUB_MANIFEST_TAG_VALUE}-${PLATFORM}"
+              PRIMARY_GHCR_MANIFEST_TAG_VALUE="${GHCR_BASE}:nightly"
+              GHCR_TAGS_FOR_PUSH="${PRIMARY_GHCR_MANIFEST_TAG_VALUE}-${PLATFORM}"
               ;;
             "branch")
-              PRIMARY_DOCKERHUB_MANIFEST_TAG_VALUE="${DOCKER_BASE}:${N8N_VERSION_TAG}"
-              DOCKER_TAGS_FOR_PUSH="${PRIMARY_DOCKERHUB_MANIFEST_TAG_VALUE}-${PLATFORM}"
+              PRIMARY_GHCR_MANIFEST_TAG_VALUE="${GHCR_BASE}:${N8N_VERSION_TAG}"
+              GHCR_TAGS_FOR_PUSH="${PRIMARY_GHCR_MANIFEST_TAG_VALUE}-${PLATFORM}"
               ;;
             "dev"|*)
               if [[ "$N8N_VERSION_TAG" == pr-* ]]; then
-                PRIMARY_DOCKERHUB_MANIFEST_TAG_VALUE="${DOCKER_BASE}:${N8N_VERSION_TAG}"
-                DOCKER_TAGS_FOR_PUSH="${PRIMARY_DOCKERHUB_MANIFEST_TAG_VALUE}-${PLATFORM}"
+                PRIMARY_GHCR_MANIFEST_TAG_VALUE="${GHCR_BASE}:${N8N_VERSION_TAG}"
+                GHCR_TAGS_FOR_PUSH="${PRIMARY_GHCR_MANIFEST_TAG_VALUE}-${PLATFORM}"
               else
-                PRIMARY_DOCKERHUB_MANIFEST_TAG_VALUE="${DOCKER_BASE}:dev"
-                DOCKER_TAGS_FOR_PUSH="${PRIMARY_DOCKERHUB_MANIFEST_TAG_VALUE}-${PLATFORM}"
+                PRIMARY_GHCR_MANIFEST_TAG_VALUE="${GHCR_BASE}:dev"
+                GHCR_TAGS_FOR_PUSH="${PRIMARY_GHCR_MANIFEST_TAG_VALUE}-${PLATFORM}"
               fi
               ;;
           esac
 
           {
             echo "tags<<EOF"
-            echo "$DOCKER_TAGS_FOR_PUSH"
+            echo -e "$GHCR_TAGS_FOR_PUSH"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
-          echo "dockerhub_platform_tag=${DOCKER_TAGS_FOR_PUSH}" >> "$GITHUB_OUTPUT"
+          echo "ghcr_platform_tag=${GHCR_TAGS_FOR_PUSH}" >> "$GITHUB_OUTPUT"
 
           # Only output manifest tags from the first platform to avoid duplicates
           if [[ "$PLATFORM" == "amd64" ]]; then
-            echo "primary_dockerhub_manifest_tag=${PRIMARY_DOCKERHUB_MANIFEST_TAG_VALUE}" >> "$GITHUB_OUTPUT"
+            echo "primary_ghcr_manifest_tag=${PRIMARY_GHCR_MANIFEST_TAG_VALUE}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
 
-      - name: Login to Docker Hub
+      - name: Login to GitHub Container Registry
         if: needs.determine-build-context.outputs.push_enabled == 'true'
-        uses: docker/login-action@v3
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push n8n Docker image
         uses: useblacksmith/build-push-action@574eb0ee0b59c6a687ace24192f0727dfb65d6d7 # v1.2
@@ -314,8 +313,6 @@ jobs:
             NODE_VERSION=22
             N8N_VERSION=${{ needs.determine-build-context.outputs.n8n_version }}
             N8N_RELEASE_TYPE=${{ needs.determine-build-context.outputs.release_type }}
-            LAUNCHER_VERSION=1.0.0
-            LAUNCHER_REPO=xangcastle-tech
           platforms: ${{ matrix.docker_platform }}
           provenance: true
           sbom: true
@@ -332,8 +329,6 @@ jobs:
             PYTHON_VERSION=3.13
             N8N_VERSION=${{ needs.determine-build-context.outputs.n8n_version }}
             N8N_RELEASE_TYPE=${{ needs.determine-build-context.outputs.release_type }}
-            LAUNCHER_VERSION=1.0.0
-            LAUNCHER_REPO=xangcastle-tech
           platforms: ${{ matrix.docker_platform }}
           provenance: true
           sbom: true
@@ -342,7 +337,7 @@ jobs:
 
   create_multi_arch_manifest:
     name: Create Multi-Arch Manifest
-    needs: [ determine-build-context, build-and-push-docker ]
+    needs: [determine-build-context, build-and-push-docker]
     runs-on: ubuntu-latest
     if: |
       needs.build-and-push-docker.result == 'success' &&
@@ -351,20 +346,20 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
 
-      - name: Login to Docker Hub
-        if: needs.determine-build-context.outputs.push_enabled == 'true'
-        uses: docker/login-action@v3
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create Docker Hub multi-arch manifest (n8n)
-        if: needs.build-and-push-docker.outputs.primary_dockerhub_manifest_tag != ''
+      - name: Create GHCR multi-arch manifest
+        if: needs.build-and-push-docker.outputs.primary_ghcr_manifest_tag != ''
         run: |
-          MANIFEST_TAG="${{ needs.build-and-push-docker.outputs.primary_dockerhub_manifest_tag }}"
+          MANIFEST_TAG="${{ needs.build-and-push-docker.outputs.primary_ghcr_manifest_tag }}"
           RELEASE_TYPE="${{ needs.determine-build-context.outputs.release_type }}"
 
-          echo "Creating Docker Hub n8n manifest: $MANIFEST_TAG"
+          echo "Creating GHCR manifest: $MANIFEST_TAG"
 
           # For branch builds, only AMD64 is built
           if [[ "$RELEASE_TYPE" == "branch" ]]; then
@@ -378,13 +373,13 @@ jobs:
               ${MANIFEST_TAG}-arm64
           fi
 
-      - name: Create Docker Hub multi-arch manifest (runners)
-        if: needs.build-and-push-docker.outputs.runners_primary_dockerhub_manifest_tag != ''
+      - name: Create GHCR multi-arch manifest (runners)
+        if: needs.build-and-push-docker.outputs.runners_primary_ghcr_manifest_tag != ''
         run: |
-          MANIFEST_TAG="${{ needs.build-and-push-docker.outputs.runners_primary_dockerhub_manifest_tag }}"
+          MANIFEST_TAG="${{ needs.build-and-push-docker.outputs.runners_primary_ghcr_manifest_tag }}"
           RELEASE_TYPE="${{ needs.determine-build-context.outputs.release_type }}"
 
-          echo "Creating Docker Hub runners manifest: $MANIFEST_TAG"
+          echo "Creating GHCR runners manifest: $MANIFEST_TAG"
 
           # For branch builds, only AMD64 is built
           if [[ "$RELEASE_TYPE" == "branch" ]]; then
@@ -400,7 +395,7 @@ jobs:
 
   call-success-url:
     name: Call Success URL
-    needs: [ create_multi_arch_manifest ]
+    needs: [create_multi_arch_manifest]
     runs-on: ubuntu-latest
     if: needs.create_multi_arch_manifest.result == 'success' || needs.create_multi_arch_manifest.result == 'skipped'
     steps:
@@ -415,7 +410,7 @@ jobs:
 
   security-scan:
     name: Security Scan
-    needs: [ determine-build-context, build-and-push-docker ]
+    needs: [determine-build-context, build-and-push-docker]
     if: |
       success() &&
       (needs.determine-build-context.outputs.release_type == 'stable' ||
@@ -427,12 +422,12 @@ jobs:
 
   security-scan-runners:
     name: Security Scan (runners)
-    needs: [ determine-build-context, build-and-push-docker ]
+    needs: [determine-build-context, build-and-push-docker]
     if: |
       success() &&
       (needs.determine-build-context.outputs.release_type == 'stable' ||
       needs.determine-build-context.outputs.release_type == 'nightly')
     uses: ./.github/workflows/security-trivy-scan-callable.yml
     with:
-      image_ref: ${{ needs.build-and-push-docker.outputs.runners_primary_dockerhub_manifest_tag }}
+      image_ref: ${{ needs.build-and-push-docker.outputs.runners_primary_ghcr_manifest_tag }}
     secrets: inherit
