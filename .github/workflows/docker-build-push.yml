@@ -5,7 +5,7 @@
 # - security-scan: This scans the itstar-tech/n8n Docker image for security vulnerabilities using Trivy.
 # - security-scan-runners: This scans the itstar-tech/runners Docker image for security vulnerabilities using Trivy.
 
-name: 'Docker: Build and Push (XangCastle)'
+name: 'Docker: Build and Push'
 
 env:
   NODE_OPTIONS: '--max-old-space-size=7168'
