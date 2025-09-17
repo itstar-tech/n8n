@@ -1,6 +1,6 @@
 ARG NODE_VERSION=22.19
 ARG PYTHON_VERSION=3.13
-ARG LAUNCHER_REPO=xangcastle-tech
+ARG LAUNCHER_REPO=itstar-tech
 
 # ==============================================================================
 # STAGE 1: JavaScript runner (@n8n/task-runner) artifact from CI
