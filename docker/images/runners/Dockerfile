@@ -1,6 +1,6 @@
 ARG NODE_VERSION=22.19
 ARG PYTHON_VERSION=3.13
-ARG LAUNCHER_REPO=itstar-tech
+ARG LAUNCHER_REPO=xangcastle-tech
 
 # ==============================================================================
 # STAGE 1: JavaScript runner (@n8n/task-runner) artifact from CI
@@ -76,7 +76,7 @@ RUN uv pip install -r /app/task-runner-python/extras.txt
 FROM alpine:3.22.1 AS launcher-downloader
 ARG TARGETPLATFORM
 ARG LAUNCHER_VERSION=1.0.0
-ARG LAUNCHER_REPO
+ARG LAUNCHER_REPO=xangcastle-tech
 
 RUN set -e; \
     case "$TARGETPLATFORM" in \

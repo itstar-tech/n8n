@@ -28,7 +28,7 @@ jobs:
       - name: Login to DockerHub
         uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
-          username: itstar
+          username: xangcastle
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and push
@@ -43,7 +43,7 @@ jobs:
           sbom: ${{ github.event_name == 'push' }}
           push: ${{ github.event_name == 'push' }}
           tags: |
-            itstar/n8n-base:${{ matrix.node_version }}-${{ github.sha }}
-            itstar/n8n-base:${{ matrix.node_version }}
+            xangcastle/n8n-base:${{ matrix.node_version }}-${{ github.sha }}
+            xangcastle/n8n-base:${{ matrix.node_version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

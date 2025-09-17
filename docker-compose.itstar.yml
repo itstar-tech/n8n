@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   n8n:
-    image: itstar/n8n:snapshot
+    image: xangcastle/n8n:snapshot
     container_name: n8n-itstar
     ports:
       - "5678:5678"
