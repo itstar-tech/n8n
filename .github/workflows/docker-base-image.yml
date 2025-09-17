@@ -49,7 +49,7 @@ jobs:
           sbom: ${{ github.event_name == 'push' }}
           push: ${{ github.event_name == 'push' }}
           tags: |
-            ghcr.io/${{ github.repository_owner }}/base:${{ matrix.node_version }}-${{ github.sha }}
-            ghcr.io/${{ github.repository_owner }}/base:${{ matrix.node_version }}
+            ghcr.io/itstar-tech/n8n-base:${{ matrix.node_version }}-${{ github.sha }}
+            ghcr.io/itstar-tech/n8n-base:${{ matrix.node_version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
