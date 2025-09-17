@@ -83,9 +83,6 @@ jobs:
           name: editor-ui-dist
           path: packages/frontend/editor-ui/dist/
 
-      - name: BundleMon
-        uses: lironer/bundlemon-action@cadbdd58f86faf1900725ef69d455444124b3748 # v1.3.0
-
   unit-test:
     name: Unit tests
     if: needs.install-and-build.outputs.non_python_changed == 'true'
