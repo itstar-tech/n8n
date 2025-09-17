@@ -1,13 +1,13 @@
 ARG NODE_VERSION=22
 ARG N8N_VERSION=snapshot
 ARG LAUNCHER_VERSION=1.0.0
-ARG LAUNCHER_REPO=xangcastle-tech
+ARG LAUNCHER_REPO=itstar-tech
 ARG TARGETPLATFORM
 
 # ==============================================================================
 # STAGE 1: System Dependencies & Base Setup
 # ==============================================================================
-FROM xangcastle/n8n-base:${NODE_VERSION} AS system-deps
+FROM ghcr.io/itstar-tech/n8n-base:${NODE_VERSION} AS system-deps
 
 # ==============================================================================
 # STAGE 2: Application Artifact Processor
