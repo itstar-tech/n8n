@@ -43,8 +43,8 @@ jobs:
           sbom: ${{ github.event_name == 'push' }}
           push: ${{ github.event_name == 'push' }}
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/base:${{ matrix.node_version }}-${{ github.sha }}
-            ${{ secrets.DOCKER_USERNAME }}/base:${{ matrix.node_version }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/base:${{ matrix.node_version }}-${{ github.sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/base:${{ matrix.node_version }}
             ghcr.io/${{ github.repository_owner }}/base:${{ matrix.node_version }}-${{ github.sha }}
             ghcr.io/${{ github.repository_owner }}/base:${{ matrix.node_version }}
           cache-from: type=gha
