@@ -1,4 +1,4 @@
-name: Docker Base Image CI (ITStar)
+name: Docker Base Image CI (XangCastle)
 
 on:
   push:
