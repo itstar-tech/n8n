@@ -152,23 +152,6 @@ const mainMenuItems = computed<IMenuItem[]>(() => [
 		},
 	},
 	{
-		id: 'variables',
-		icon: 'variable',
-		label: i18n.baseText('mainSidebar.variables'),
-		position: 'bottom',
-		route: { to: { name: VIEWS.VARIABLES } },
-	},
-	{
-		id: 'insights',
-		icon: 'chart-column-decreasing',
-		label: 'Insights',
-		position: 'bottom',
-		route: { to: { name: VIEWS.INSIGHTS } },
-		available:
-			settingsStore.isModuleActive('insights') &&
-			hasPermission(['rbac'], { rbac: { scope: 'insights:list' } }),
-	},
-	{
 		id: 'help',
 		icon: 'circle-help',
 		label: i18n.baseText('mainSidebar.help'),
